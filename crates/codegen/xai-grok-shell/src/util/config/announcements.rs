@@ -68,5 +68,10 @@ pub fn resolve_announcements(
     let mgd = managed.map(announcements_from_toml).unwrap_or_default();
     let remote_slice = remote.unwrap_or_default();
 
+    // Fork: drop marketing/upgrade promos (e.g. the "[Click here to Upgrade]
+    // or use Ctrl+O" session banner); critical notices still surface.
     merge_announcements(&[&req, remote_slice, &usr, &mgd])
+        .into_iter()
+        .filter(|a| a.severity.as_deref() != Some("promo"))
+        .collect()
 }
