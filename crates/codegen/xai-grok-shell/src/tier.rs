@@ -22,9 +22,9 @@
 /// recovers live on the next settings update), while the shell treats absence as
 /// unrestricted (fail-open — the server authoritatively enforces per-tier
 /// limits, so never withhold a capability on a guess).
-pub fn is_restricted_tier_name(tier: &str) -> bool {
-    let t = tier.trim().to_ascii_lowercase();
-    t.is_empty() || t == "free" || t == "x basic" || t == "x_basic"
+pub fn is_restricted_tier_name(_tier: &str) -> bool {
+    // Fork: tier gating removed — no tier is ever restricted client-side.
+    false
 }
 
 #[cfg(test)]
@@ -32,14 +32,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn restricted_names() {
-        assert!(is_restricted_tier_name(""));
-        assert!(is_restricted_tier_name("   "));
-        assert!(is_restricted_tier_name("Free"));
-        assert!(is_restricted_tier_name("free"));
-        assert!(is_restricted_tier_name("X Basic"));
-        assert!(is_restricted_tier_name("x_basic"));
-        assert!(is_restricted_tier_name("  X BASIC  "));
+    fn no_names_are_restricted() {
+        for tier in &["", "   ", "Free", "free", "X Basic", "x_basic", "  X BASIC  "] {
+            assert!(!is_restricted_tier_name(tier), "{tier:?} must not be restricted");
+        }
     }
 
     #[test]

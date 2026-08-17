@@ -576,11 +576,9 @@ pub(crate) const TIER_RESTRICTED_COMMANDS: &[&str] =
 /// the two can't drift. The pager's *cosmetic* slash-command gate treats an
 /// absent tier (`None`) as restricted (it recovers live on the next settings
 /// update); the shell's capability gate treats absence as unrestricted.
-fn is_restricted_tier(tier: Option<&str>) -> bool {
-    match tier {
-        None => true,
-        Some(t) => xai_grok_shell::tier::is_restricted_tier_name(t),
-    }
+fn is_restricted_tier(_tier: Option<&str>) -> bool {
+    // Fork: tier gating removed — no tier is ever restricted client-side.
+    false
 }
 /// True for API-key labels from shell/CCP: `"ApiKey"`, `"API Key"`, `"api_key"`.
 pub(crate) fn is_api_key_label(s: &str) -> bool {
@@ -1367,7 +1365,8 @@ impl AppView {
         self.is_zdr = meta.is_zdr;
         self.team_role = meta.team_role.clone();
         self.coding_data_retention_opt_out = meta.coding_data_retention_opt_out;
-        self.gate = meta.gate.clone();
+        // Fork: subscription gating removed — ignore the server-sent gate.
+        self.gate = None;
         if was_gated && self.gate.is_none() {
             self.paywall_check_started = None;
             xai_grok_telemetry::session_ctx::log_event(

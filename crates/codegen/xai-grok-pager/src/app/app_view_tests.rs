@@ -1576,15 +1576,11 @@ fn apply_auth_meta_api_key_enables_voice_and_skips_tier_gate() {
         ..Default::default()
     });
     assert!(!app.is_api_key_auth);
-    assert!(!app.voice_mode_enabled);
+    // Fork: tier gating removed — Free no longer restricts commands or voice.
+    assert!(app.voice_mode_enabled);
     assert!(app.usage_visible);
-    assert!(!app.tier_restricted_commands.is_empty());
-}
-fn expected_tier_restricted_commands() -> Vec<String> {
-    TIER_RESTRICTED_COMMANDS
-        .iter()
-        .map(|n| (*n).to_string())
-        .collect()
+    assert!(app.tier_restricted_commands.is_empty());
+    assert_tier_restricted_commands_present(&app);
 }
 /// Make every tier-restricted command visible on the welcome prompt so the
 /// present/absent assertions exercise the deny list, not incidental
@@ -1607,16 +1603,6 @@ fn advertise_media_tools(app: &mut AppView) {
         );
     app.welcome_prompt.set_voice_visible(true);
 }
-fn assert_tier_restricted_commands_absent(app: &AppView) {
-    let reg = app.welcome_prompt.slash_controller.registry();
-    for name in TIER_RESTRICTED_COMMANDS {
-        assert!(
-            reg.get(name).is_none(),
-            "/{name} must be denied on a restricted tier"
-        );
-    }
-    assert!(reg.get("cost").is_none(), "/cost alias must be denied");
-}
 fn assert_tier_restricted_commands_present(app: &AppView) {
     let reg = app.welcome_prompt.slash_controller.registry();
     for name in TIER_RESTRICTED_COMMANDS {
@@ -1627,19 +1613,18 @@ fn assert_tier_restricted_commands_present(app: &AppView) {
     }
 }
 #[test]
-fn apply_auth_meta_restricts_usage_for_free_tier() {
+fn apply_auth_meta_no_restrictions_for_free_tier() {
+    // Fork: tier gating removed — free tier keeps all commands.
     let mut app = test_app();
     advertise_media_tools(&mut app);
     app.apply_auth_meta(&xai_grok_shell::auth::AuthMeta::default());
-    assert_eq!(
-        app.tier_restricted_commands,
-        expected_tier_restricted_commands()
-    );
-    assert_tier_restricted_commands_absent(&app);
+    assert!(app.tier_restricted_commands.is_empty());
+    assert_tier_restricted_commands_present(&app);
     assert!(app.usage_visible);
 }
 #[test]
-fn apply_auth_meta_restricts_usage_for_x_basic_tier() {
+fn apply_auth_meta_no_restrictions_for_x_basic_tier() {
+    // Fork: tier gating removed — X Basic keeps all commands.
     let mut app = test_app();
     advertise_media_tools(&mut app);
     let meta = xai_grok_shell::auth::AuthMeta {
@@ -1647,11 +1632,8 @@ fn apply_auth_meta_restricts_usage_for_x_basic_tier() {
         ..Default::default()
     };
     app.apply_auth_meta(&meta);
-    assert_eq!(
-        app.tier_restricted_commands,
-        expected_tier_restricted_commands()
-    );
-    assert_tier_restricted_commands_absent(&app);
+    assert!(app.tier_restricted_commands.is_empty());
+    assert_tier_restricted_commands_present(&app);
 }
 #[test]
 fn apply_auth_meta_lifts_restrictions_for_paid_tiers_and_teams() {
@@ -1667,7 +1649,8 @@ fn apply_auth_meta_lifts_restrictions_for_paid_tiers_and_teams() {
     let mut app = test_app();
     advertise_media_tools(&mut app);
     app.apply_auth_meta(&xai_grok_shell::auth::AuthMeta::default());
-    assert!(!app.tier_restricted_commands.is_empty());
+    // Fork: tier gating removed — even an absent tier keeps all commands.
+    assert!(app.tier_restricted_commands.is_empty());
     app.subscription_tier = Some("SuperGrok".into());
     app.apply_tier_restrictions();
     assert!(app.tier_restricted_commands.is_empty());
@@ -1683,11 +1666,12 @@ fn apply_auth_meta_lifts_restrictions_for_paid_tiers_and_teams() {
 }
 #[test]
 fn is_restricted_tier_classification() {
-    assert!(is_restricted_tier(None));
-    assert!(is_restricted_tier(Some("")));
-    assert!(is_restricted_tier(Some("Free")));
-    assert!(is_restricted_tier(Some("X Basic")));
-    assert!(is_restricted_tier(Some("x_basic")));
+    // Fork: tier gating removed — no tier is ever restricted.
+    assert!(!is_restricted_tier(None));
+    assert!(!is_restricted_tier(Some("")));
+    assert!(!is_restricted_tier(Some("Free")));
+    assert!(!is_restricted_tier(Some("X Basic")));
+    assert!(!is_restricted_tier(Some("x_basic")));
     assert!(!is_restricted_tier(Some("SuperGrok")));
     assert!(!is_restricted_tier(Some("SuperGrok Heavy")));
     assert!(!is_restricted_tier(Some("X Premium")));
