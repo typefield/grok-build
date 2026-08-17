@@ -432,14 +432,11 @@ impl SkillsClient {
         xai_file_utils::trace_context::inject_trace_context_into_request(builder)
     }
 
-    /// Grok.com product Skills require first-party session auth (same gate as
-    /// managed MCP / sibling grok.com clients — not plain BYOK API keys).
+    /// Fork: eligibility gate removed — any credential (including BYOK API
+    /// keys) may attempt product Skills; the backend still authenticates the
+    /// token server-side.
     async fn require_skills_auth(&self) -> Result<crate::auth::GrokAuth, SkillsError> {
-        let auth = self.auth.auth().await.map_err(|_| SkillsError::NoAuth)?;
-        if !auth.is_managed_mcp_eligible() {
-            return Err(SkillsError::NoAuth);
-        }
-        Ok(auth)
+        self.auth.auth().await.map_err(|_| SkillsError::NoAuth)
     }
 
     /// Credentials to try for grok.com product Skills REST.
