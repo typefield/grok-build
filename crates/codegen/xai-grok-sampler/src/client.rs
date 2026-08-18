@@ -893,6 +893,7 @@ impl SamplingClient {
     }
 
     fn apply_defaults(&self, mut request: ChatCompletionRequest) -> Result<ChatCompletionRequest> {
+        self.apply_text_only_content(&mut request);
         if request.model.is_none() {
             request.model = Some(self.defaults.model.clone());
         }
@@ -1950,7 +1951,6 @@ impl SamplingClient {
         if let Some(trace) = trace {
             chat_request.trace = Some(trace);
         }
-        self.apply_text_only_content(&mut chat_request);
 
         self.chat_completion_stream(chat_request).await
     }
@@ -1969,7 +1969,6 @@ impl SamplingClient {
         if let Some(trace) = trace {
             chat_request.trace = Some(trace);
         }
-        self.apply_text_only_content(&mut chat_request);
 
         self.chat_completion(chat_request).await
     }
