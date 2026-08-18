@@ -1914,6 +1914,11 @@ impl SamplingClient {
                     .iter()
                     .any(|b| matches!(b, xai_grok_sampling_types::ChatContentBlock::ImageUrl { .. }))
                 {
+                    tracing::warn!(
+                        model = %chat_request.model,
+                        role = ?msg.role,
+                        "text_only: replacing image content blocks with placeholder"
+                    );
                     *blocks = std::mem::take(blocks)
                         .into_iter()
                         .map(|b| match b {
