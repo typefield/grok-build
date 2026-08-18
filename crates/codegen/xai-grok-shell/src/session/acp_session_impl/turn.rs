@@ -665,7 +665,7 @@ impl SessionActor {
         let user_images = self
             .normalize_images_with_notices(&mut context, raw_images, is_cursor)
             .await;
-        let (query, extra_images) = if !self.is_cursor_harness() {
+        let (query, extra_images) = if !self.is_text_only_harness().await {
             let extraction = xai_grok_tools::util::base64_images::extract_base64_images(query);
             if extraction.images.is_empty() {
                 (extraction.text, Vec::new())
@@ -846,7 +846,7 @@ impl SessionActor {
                 }
             };
             user_chat.set_prompt_index(current_prompt_index);
-            if !self.is_cursor_harness() {
+            if !self.is_text_only_harness().await {
                 for image in &user_images {
                     user_chat.add_image(pick_user_image_url(image));
                 }

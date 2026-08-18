@@ -3824,6 +3824,7 @@ fn default_models(endpoints: &EndpointsConfig) -> IndexMap<String, ModelEntryCon
                 supports_reasoning_effort: m.supports_reasoning_effort,
                 reasoning_efforts: m.reasoning_efforts,
                 supports_backend_search: m.supports_backend_search,
+                text_only: false,
                 compactions_remaining: m.compactions_remaining,
                 compaction_at_tokens: m.compaction_at_tokens,
                 show_model_fingerprint: m.show_model_fingerprint,
@@ -3934,6 +3935,12 @@ pub struct ModelEntryConfig {
     pub supported_in_api: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub supports_backend_search: bool,
+    /// Fork: when true, this model's endpoint only accepts text content
+    /// (`content[].type == "text"`). No image blocks are ever attached for
+    /// this model — user-pasted images keep their file references in the
+    /// prompt text, tool-layer images are discarded.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub text_only: bool,
     /// Per-model config for the `x-compactions-remaining` header; `None` disables it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compactions_remaining: Option<CompactionsRemaining>,
@@ -4204,6 +4211,9 @@ pub struct ModelInfo {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reasoning_efforts: Vec<ReasoningEffortOption>,
     pub supports_backend_search: bool,
+    /// Fork: endpoint only accepts text content — see `ModelEntryConfig`.
+    #[serde(default)]
+    pub text_only: bool,
     /// Per-model config for the `x-compactions-remaining` header; `None` disables it.
     pub compactions_remaining: Option<CompactionsRemaining>,
     /// Per-model config for the `x-compaction-at` header; `None` disables it.
@@ -4251,6 +4261,7 @@ impl ModelInfo {
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             supports_backend_search: false,
+            text_only: false,
             compactions_remaining: None,
             compaction_at_tokens: None,
             show_model_fingerprint: false,
@@ -4289,6 +4300,7 @@ impl ModelInfo {
             supports_reasoning_effort: entry.supports_reasoning_effort,
             reasoning_efforts: entry.reasoning_efforts.clone(),
             supports_backend_search: entry.supports_backend_search,
+            text_only: entry.text_only,
             compactions_remaining: entry.compactions_remaining,
             compaction_at_tokens: entry.compaction_at_tokens,
             show_model_fingerprint: entry.show_model_fingerprint,
@@ -5057,6 +5069,7 @@ pub(crate) fn resolve_aux_model_sampling_config(
                 supports_reasoning_effort: false,
                 reasoning_efforts: Vec::new(),
                 supports_backend_search: false,
+                text_only: false,
                 compactions_remaining: None,
                 compaction_at_tokens: None,
                 show_model_fingerprint: false,
@@ -5294,6 +5307,7 @@ fn resolve_hidden_default_web_search_sampling_config(
             supports_reasoning_effort: false,
             reasoning_efforts: Vec::new(),
             supports_backend_search: false,
+            text_only: false,
             compactions_remaining: None,
             compaction_at_tokens: None,
             show_model_fingerprint: false,

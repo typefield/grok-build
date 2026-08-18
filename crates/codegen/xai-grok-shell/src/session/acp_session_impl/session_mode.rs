@@ -39,6 +39,31 @@ impl SessionActor {
     pub(super) fn is_cursor_harness(&self) -> bool {
         false
     }
+    /// Fork: text-only content mode — the cursor harness,
+    /// `GROK_TEXT_ONLY_CONTENT=1`, or the current model declaring
+    /// `[model.<id>] text_only = true` in config.toml. Gates every
+    /// image-attach decision so a backend whose chat-completions endpoint
+    /// only accepts `content[].type == "text"` never receives image blocks.
+    /// Mirrors the cursor harness semantics: user-pasted images keep their
+    /// on-disk file references in the prompt text, tool-layer images are
+    /// discarded. Re-resolved per call so a mid-session `/model` switch
+    /// applies to the next attach decision.
+    pub(super) async fn is_text_only_harness(&self) -> bool {
+        if self.is_cursor_harness()
+            || std::env::var("GROK_TEXT_ONLY_CONTENT")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false)
+        {
+            return true;
+        }
+        let model_id = self.current_model_id().await;
+        if model_id == "unknown" {
+            return false;
+        }
+        let models = self.models_manager.models();
+        crate::agent::config::find_model_by_id(&models, &model_id)
+            .is_some_and(|e| e.info().text_only)
+    }
     pub(super) async fn handle_session_mode(&self, session_mode_id: acp::SessionModeId) {
         use xai_grok_tools::types::SessionMode;
         let prompt_mode = prompt_mode_from_session_mode_id(&session_mode_id);

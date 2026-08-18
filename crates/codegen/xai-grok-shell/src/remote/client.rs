@@ -942,6 +942,11 @@ pub(crate) fn parse_remote_model_value(
             .or_else(|| meta.and_then(|m| m.get("supportsBackendSearch")))
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
+        text_only: obj
+            .get("textOnly")
+            .or_else(|| obj.get("text_only"))
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         compactions_remaining: obj
             .get("compactionsRemaining")
             .or_else(|| obj.get("compactions_remaining"))

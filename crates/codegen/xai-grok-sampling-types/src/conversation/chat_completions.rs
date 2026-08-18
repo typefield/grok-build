@@ -2,6 +2,20 @@
 
 use super::*;
 
+/// Fork: `GROK_TEXT_ONLY_CONTENT=1` replaces image content blocks with text
+/// placeholders before serialization, for backends whose chat-completions
+/// endpoint only accepts `content[].type == "text"` (e.g. text-only coding
+/// plans). Also affects image-describe transcription requests, so do not
+/// enable it together with `models.image_description`.
+fn text_only_content() -> bool {
+    std::env::var("GROK_TEXT_ONLY_CONTENT")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
+
+const OMITTED_IMAGE_PLACEHOLDER: &str =
+    "[image content omitted: text-only backend (GROK_TEXT_ONLY_CONTENT)]";
+
 impl From<ChatRequestMessage> for ConversationItem {
     fn from(msg: ChatRequestMessage) -> Self {
         match msg.role {
@@ -97,6 +111,11 @@ pub fn conversation_item_to_chat_message(item: ConversationItem) -> ChatRequestM
                         ContentPart::Text { text } => ChatContentBlock::Text {
                             text: text.as_ref().to_owned(),
                         },
+                        ContentPart::Image { .. } if text_only_content() => {
+                            ChatContentBlock::Text {
+                                text: OMITTED_IMAGE_PLACEHOLDER.to_owned(),
+                            }
+                        }
                         ContentPart::Image { url } => ChatContentBlock::ImageUrl {
                             image_url: ImageUrl {
                                 url: url.as_ref().to_owned(),

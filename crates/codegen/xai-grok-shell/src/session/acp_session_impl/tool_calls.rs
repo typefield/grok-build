@@ -2442,7 +2442,7 @@ impl SessionActor {
             result.prompt_text
         };
         let mut inline_images: Vec<ContentPart> = Vec::new();
-        let extraction = if !self.is_cursor_harness()
+        let extraction = if !self.is_text_only_harness().await
             && !matches!(
                 result.output,
                 ToolsToolOutput::ReadFile(ReadFileOutput::ImageContent(_))
@@ -2457,12 +2457,12 @@ impl SessionActor {
         };
         let mut extracted_images = extraction.images;
         split_tool_layer_for_harness(
-            self.is_cursor_harness(),
+            self.is_text_only_harness().await,
             &mut extracted_images,
             tool_layer_images,
         );
         let mut prompt_text = maybe_rewrite(path_rewriter.as_ref(), extraction.text);
-        if !self.is_cursor_harness()
+        if !self.is_text_only_harness().await
             && let ToolsToolOutput::ReadFile(ReadFileOutput::ImageContent(ref image_content)) =
                 result.output
         {
@@ -2495,7 +2495,7 @@ impl SessionActor {
                 }
             }
         }
-        if !self.is_cursor_harness()
+        if !self.is_text_only_harness().await
             && let ToolsToolOutput::ReadFile(ReadFileOutput::PdfPageImages(ref pdf)) = result.output
         {
             for page in &pdf.pages {
