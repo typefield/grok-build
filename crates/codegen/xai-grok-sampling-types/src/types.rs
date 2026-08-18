@@ -1071,6 +1071,10 @@ pub struct SamplingConfig {
     /// API request body so the upstream emits per-chunk argument deltas.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stream_tool_calls: Option<bool>,
+    /// Fork: this model's endpoint only accepts text content
+    /// (`content[].type == "text"`); mirrors `[model.<id>] text_only`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub text_only: bool,
 }
 
 // ============ Responses API wrapper ============

@@ -114,6 +114,13 @@ pub struct SamplerConfig {
     #[serde(default)]
     pub supports_backend_search: bool,
 
+    /// Fork: this model's endpoint only accepts text content
+    /// (`content[].type == "text"`). The client replaces image blocks
+    /// with text placeholders at the wire layer, so even images already
+    /// present in conversation history never reach the backend.
+    #[serde(default)]
+    pub text_only: bool,
+
     /// Per-model config for the `x-compactions-remaining` header; `None` disables it.
     #[serde(default)]
     pub compactions_remaining: Option<CompactionsRemaining>,
@@ -157,6 +164,7 @@ impl Default for SamplerConfig {
             force_http1: false,
             max_retries: None,
             stream_tool_calls: false,
+            text_only: false,
             idle_timeout_secs: None,
             reasoning_effort: None,
             origin_client: None,

@@ -370,6 +370,9 @@ pub struct SamplingClient {
     header_injector: Option<crate::config::SharedHeaderInjector>,
     /// Endpoint URL builder, resolved once from `base_url` + `query_params`.
     endpoint: EndpointTemplate,
+    /// Fork: wire-level text-only mode for endpoints that only accept
+    /// `content[].type == "text"`. See `SamplerConfig::text_only`.
+    text_only: bool,
 }
 
 impl std::fmt::Debug for SamplingClient {
@@ -719,6 +722,7 @@ impl SamplingClient {
             bearer_resolver: config.bearer_resolver,
             header_injector: config.header_injector,
             endpoint,
+            text_only: config.text_only,
         })
     }
 
@@ -1895,6 +1899,39 @@ impl SamplingClient {
         Ok(())
     }
 
+    /// Fork: replace image content blocks with text placeholders on the wire
+    /// when the model is configured `text_only` (endpoints that only accept
+    /// `content[].type == "text"`). Covers images already present in
+    /// conversation history that predate the attach-layer gating.
+    fn apply_text_only_content(&self, chat_request: &mut ChatCompletionRequest) {
+        if !self.text_only {
+            return;
+        }
+        const PLACEHOLDER: &str = "[image content omitted: text-only backend]";
+        for msg in &mut chat_request.messages {
+            if let xai_grok_sampling_types::MessageContent::Blocks(blocks) = &mut msg.content {
+                if blocks
+                    .iter()
+                    .any(|b| matches!(b, xai_grok_sampling_types::ChatContentBlock::ImageUrl { .. }))
+                {
+                    *blocks = std::mem::take(blocks)
+                        .into_iter()
+                        .map(|b| match b {
+                                            xai_grok_sampling_types::ChatContentBlock::Text { text } => {
+                                                xai_grok_sampling_types::ChatContentBlock::Text { text }
+                                            }
+                                            xai_grok_sampling_types::ChatContentBlock::ImageUrl { .. } => {
+                                                xai_grok_sampling_types::ChatContentBlock::Text {
+                                                    text: PLACEHOLDER.to_owned(),
+                                                }
+                                            }
+                                        })
+                        .collect();
+                }
+            }
+        }
+    }
+
     /// Send a conversation request using the Chat Completions API (streaming).
     ///
     /// Converts the `ConversationRequest` to `ChatCompletionRequest` internally.
@@ -1913,6 +1950,7 @@ impl SamplingClient {
         if let Some(trace) = trace {
             chat_request.trace = Some(trace);
         }
+        self.apply_text_only_content(&mut chat_request);
 
         self.chat_completion_stream(chat_request).await
     }
@@ -1931,6 +1969,7 @@ impl SamplingClient {
         if let Some(trace) = trace {
             chat_request.trace = Some(trace);
         }
+        self.apply_text_only_content(&mut chat_request);
 
         self.chat_completion(chat_request).await
     }
